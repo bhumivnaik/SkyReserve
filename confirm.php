@@ -239,7 +239,7 @@ $pdf->Output($pdfFile, 'F');
         $mail->Host = 'smtp.gmail.com';
         $mail->SMTPAuth = true;
         $mail->Username = 'bhumivnaik@gmail.com'; // 🔹 Your Gmail
-        $mail->Password = 'hsuf atjj tczi ncty';   // 🔹 App Password
+        $mail->Password = '';   // 🔹 App Password
         $mail->SMTPSecure = 'tls';
         $mail->Port = 587;
 
@@ -286,4 +286,5 @@ $pdf->Output($pdfFile, 'F');
     <h3>Tickets sent to your registered emails 📧</h3>
 </div>
 </body>
+
 </html>
