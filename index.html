@@ -78,8 +78,8 @@
       margin-top: 150px;
       margin-left: 50px;
       flex-grow: 1;
-      animation: slideFadeInRight 3.5s ease-out forwards;
-      animation-delay: 3s;
+      animation: slideFadeInRight 2.5s ease-out forwards;
+      animation-delay: 2s;
       opacity: 0;
       transform: translateY(50px);
     }
@@ -187,19 +187,18 @@
   <nav>
     <h1>✈️ SkyReserve</h1>
     <div>
-      <a href="http://localhost/airportrs/check_ur_bookings.php">Check Bookings</a>
-      <a href="http://localhost/airportrs/updatebooking.php">Update Booking</a>
-      <a href="http://localhost/airportrs/cancelbooking.php">Cancel Booking</a>
+      <a href="http://localhost/airportrs/viewbooking.php">Check Bookings</a>
+      <a href="http://localhost/airportrs/managebooking.php">Manage Booking</a>
     </div>
   </nav>
 
   <!-- Plane Animation -->
-  <div class="plane">
+  <div class="plane" id="plane">
     <img src="plane.png" alt="Plane">
   </div>
 
   <!-- Hero Section -->
-  <section>
+  <section class="section animated-section">
     <h1>Welcome to SkyReserve</h1>
     <h3 style="font-size: medium; font-style: italic; font-family:Cambria; margin-left: 120px; padding-bottom: 30px;">Where your journey begins above the clouds.</h3>
     <p>Discover destinations, book effortlessly, and take off with confidence.  
@@ -211,5 +210,24 @@
   <footer>
     <p>© 2025 SkyReserve Airlines. All Rights Reserved.</p>
   </footer>
+
+  <script>
+  document.addEventListener("click", () => {
+    const plane = document.getElementById("plane");
+    plane.style.animation = "none";
+    plane.style.left = "55vw";
+    plane.style.top = "20%";
+    plane.style.transform = "rotate(0deg)";
+    plane.style.opacity = "1";
+
+    const sections = document.querySelectorAll(".animated-section");
+    sections.forEach(sec => {
+        sec.style.animation = "none";           // Stop the animation
+        sec.style.opacity = "1";                // Make fully visible
+        sec.style.transform = "none";           // Remove slide-up
+    });
+  });
+</script>
+
 </body>
 </html>
