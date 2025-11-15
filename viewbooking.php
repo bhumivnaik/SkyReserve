@@ -19,7 +19,8 @@ if (isset($_GET['id']) && isset($_GET['email'])) {
             LIMIT 1";
 
     $stmt = $conn->prepare($sql);
-    $stmt->bind_param("is", $id, $email);
+    // booking_id is VARCHAR, email is VARCHAR → use "ss"
+    $stmt->bind_param("ss", $id, $email);
     $stmt->execute();
     $result = $stmt->get_result();
 
@@ -122,8 +123,8 @@ h2 {
     font-weight: bold;
 }
 
-/* UPDATE BUTTON */
-.btn-update {
+.btn-update,
+.btn-delete {
     display: block;
     margin-top: 25px;
     text-align: center;
@@ -136,7 +137,8 @@ h2 {
     transition: 0.3s;
 }
 
-.btn-update:hover {
+.btn-update:hover,
+.btn-delete:hover {
     background: var(--second-blue);
 }
 
@@ -167,42 +169,43 @@ h2 {
 
         <div class="detail-box">
             <div class="detail-title">Booking ID</div>
-            <div class="detail-value"><?= $booking['booking_id'] ?></div>
+            <div class="detail-value"><?= htmlspecialchars($booking['booking_id']) ?></div>
         </div>
 
         <div class="detail-box">
             <div class="detail-title">Date</div>
-            <div class="detail-value"><?= $booking['date'] ?></div>
+            <div class="detail-value"><?= htmlspecialchars($booking['date']) ?></div>
         </div>
 
         <div class="detail-box">
             <div class="detail-title">Status</div>
-            <div class="detail-value"><?= $booking['status'] ?></div>
+            <div class="detail-value"><?= htmlspecialchars($booking['status']) ?></div>
         </div>
 
         <div class="detail-box">
             <div class="detail-title">Flight ID</div>
-            <div class="detail-value"><?= $booking['flight_id'] ?></div>
+            <div class="detail-value"><?= htmlspecialchars($booking['flight_id']) ?></div>
         </div>
 
         <div class="detail-box">
             <div class="detail-title">Seats Booked</div>
-            <div class="detail-value"><?= $booking['seatsbooked'] ?></div>
+            <div class="detail-value"><?= htmlspecialchars($booking['seatsbooked']) ?></div>
         </div>
 
         <div class="detail-box">
             <div class="detail-title">Class</div>
-            <div class="detail-value"><?= $booking['class_id'] ?></div>
+            <div class="detail-value"><?= htmlspecialchars($booking['class_id']) ?></div>
         </div>
 
         <div class="detail-box">
             <div class="detail-title">Email</div>
-            <div class="detail-value"><?= $booking['email'] ?></div>
+            <div class="detail-value"><?= htmlspecialchars($booking['email']) ?></div>
         </div>
 
     </div>
 
-    <a class="btn-update" href="updatebooking.php?id=<?= $booking['booking_id'] ?>">Update Booking</a>
+    <a class="btn-update" href="updatebooking.php?id=<?= urlencode($booking['booking_id']) ?>">Update Booking</a>
+    <a class="btn-delete" href="deletebooking.php?booking_id=<?= urlencode($booking['booking_id']) ?>">Delete Booking</a>
 
     <?php else: ?>
         <p class="no-result"><?= $error ?></p>

@@ -20,61 +20,93 @@ $result = $conn->query($sql);
 <head>
     <title>Flight Booking</title>
     <style>
-        body {
-            font-family: Cambria, serif;
-            background: linear-gradient(to right, #b0d3fa, #a0d8ff);
-            padding: 40px;
-        }
-        h2{
-            font-family: "Libertinus Serif";
-            font-size:35px;
-            color: #0161a5ff;
-            margin: 37px auto;
-            margin-bottom:30px;
-        }
-        p {
-      text-align: center;
-      color: #555;
-      margin-bottom: 35px;
-      font-size: 16px;
+    :root {
+        --dark-blue: #3C467B;
+        --second-blue: #50589C;
+        --third-blue: #636CCB;
+        --gray-colour: #060771;
+        --white-color-light: #F4F4F4;
     }
 
-        form {
-            background: white;
-            max-width: 500px;
-            margin: 40px auto;
-            padding: 30px;
-            border-radius: 10px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.3);
-        }
-        label { display:block; margin-top:10px; font-weight:bold; }
-display:block; margin-top:10px; font-weight:bold;
-        select, input {
-            width: 99%; padding: 8px; margin-top:5px;margin-bottom:15px;
-            border-radius:5px;
-            border:1px solid #ccc;
-            font-family: 'Cambria';
-            font-size: 16px;
-        }
-        
-        input[type="number"], input[type="text"], input[type="submit"] {
-            width:96%;
-            padding:8px;
-            margin-top:5px;
-            margin-bottom:15px;
-            border-radius:5px;
-            font-family: 'Cambria';
-            border:1px solid #ccc;
-        }
-        input[type="submit"] {
-            width:99%;
-            background:#0078D7; color:white; border:none;
-            border-radius:5px; cursor:pointer; margin-top:15px;
-            padding:10px;
-        }
-        
-        input[type="submit"]:hover { background: #005fa3; }
-    </style>
+    body {
+        font-family: Cambria, serif;
+        background: linear-gradient(to right, var(--dark-blue), var(--second-blue), var(--third-blue));
+        padding: 40px;
+    }
+
+    h2 {
+        font-family: "Libertinus Serif";
+        font-size: 35px;
+        color: var(--second-blue);
+        margin: 37px auto;
+        margin-bottom: 30px;
+    }
+
+    p {
+        text-align: center;
+        color: var(--gray-colour);
+        margin-bottom: 35px;
+        font-size: 16px;
+    }
+
+    form {
+        background: var(--white-color-light);
+        max-width: 500px;
+        margin: 40px auto;
+        padding: 30px;
+        border-radius: 10px;
+        box-shadow: 0 0 10px rgba(0,0,0,0.3);
+    }
+
+    label {
+        display: block;
+        margin-top: 10px;
+        font-weight: bold;
+        color: var(--third-blue);
+    }
+
+    select, input {
+        width: 99%;
+        padding: 8px;
+        margin-top: 5px;
+        margin-bottom: 15px;
+        border-radius: 5px;
+        border: 1px solid var(--second-blue);
+        font-family: 'Cambria';
+        font-size: 16px;
+        background: white;
+        color: var(--dark-blue);
+    }
+
+    input[type="number"], 
+    input[type="text"], 
+    input[type="submit"] {
+        width: 96%;
+        padding: 8px;
+        margin-top: 5px;
+        margin-bottom: 15px;
+        border-radius: 5px;
+        font-family: 'Cambria';
+        border: 1px solid var(--second-blue);
+        color: var(--dark-blue);
+    }
+
+    input[type="submit"] {
+        width: 99%;
+        background: var(--third-blue);
+        color: white;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        margin-top: 15px;
+        padding: 10px;
+    }
+
+    input[type="submit"]:hover {
+        background: var(--second-blue);
+    }
+</style>
+
 </head>
 <body>
 
