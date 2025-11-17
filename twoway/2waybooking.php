@@ -27,7 +27,7 @@ if (!$oneway && !$twoway) die("Invalid Access!");
 // -------------------------------
 //  FETCH FLIGHT DETAILS
 // -------------------------------
-function getFlight($conn, $flight_id)
+function getFlight($conn, $flight_id, $date)
 {
     $sql = "SELECT f.flight_id, f.flight_name,
                    a1.city AS source_city,
@@ -38,16 +38,17 @@ function getFlight($conn, $flight_id)
             JOIN airport a2 ON f.destAcode = a2.acode
             JOIN flightinstance fi ON f.flight_id = fi.flight_id
             WHERE f.flight_id='$flight_id'
+            AND fi.date='$date'
             LIMIT 1";
 
     return $conn->query($sql)->fetch_assoc();
 }
 
 if ($oneway) {
-    $flight = getFlight($conn, $flight_id);
+    $flight = getFlight($conn, $flight_id, $date);
 } else {
-    $outgoing = getFlight($conn, $outgoing_id);
-    $returnf  = getFlight($conn, $return_id);
+    $outgoing = getFlight($conn, $outgoing_id, $_POST['date']);
+    $returnf  = getFlight($conn, $return_id, $_POST['return_date']);
 }
 
 
@@ -206,6 +207,8 @@ function getPrices($conn, $flight_id)
             </p>
             <input type="hidden" name="oneway" value="1">
             <input type="hidden" name="flight_id" value="<?= $flight['flight_id'] ?>">
+            <input type="hidden" name="date" value="<?= $flight['date'] ?>">
+
 
             <?php $prices = getPrices($conn, $flight['flight_id']); ?>
 
@@ -251,6 +254,9 @@ function getPrices($conn, $flight_id)
             <input type="hidden" name="twoway" value="1">
             <input type="hidden" name="outgoing_id" value="<?= $outgoing['flight_id'] ?>">
             <input type="hidden" name="return_id" value="<?= $returnf['flight_id'] ?>">
+            <input type="hidden" name="out_date" value="<?= $outgoing['date'] ?>">
+            <input type="hidden" name="ret_date" value="<?= $returnf['date'] ?>">
+
 
             <?php
             $out_prices = getPrices($conn, $outgoing['flight_id']);
