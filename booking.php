@@ -17,9 +17,11 @@ $result = $conn->query($sql);
 
 <!DOCTYPE html>
 <html>
+
 <head>
     <title>Flight Booking</title>
     <style>
+<<<<<<< HEAD
     :root {
         --dark-blue: #3C467B;
         --second-blue: #50589C;
@@ -107,70 +109,190 @@ $result = $conn->query($sql);
     }
 </style>
 
-</head>
-<body>
-
-
-<form action="passenger.php" method="POST">
-    <h2 style="text-align:center;">Book a Flight</h2>
-    <input type="hidden" name="flight_id" value="<?php echo $flight_id; ?>">
-    <input type="hidden" name="flight_name" value="<?php echo $flight_name; ?>">
-    <input type="hidden" name="source" value="<?php echo $source; ?>">
-    <input type="hidden" name="destination" value="<?php echo $destination; ?>">
-    <input type="hidden" name="date" value="<?php echo $date; ?>">
-
-    <p>
-    <strong><?php echo $flight_name; ?></strong><br>
-    <?php echo $source; ?> → <?php echo $destination; ?>
-  </p>
-
-    <label>Class:</label>
-    <select name="class_id" id="class_id" required onchange="updatePrice()">
-        <option value="">Select Class</option>
-        <?php
-        $prices = [];
-        while ($row = $result->fetch_assoc()) {
-            $prices[$row['class_id']] = $row['price'];
-            if ($row['class_id'] == '1001') $class_name = "Economy";
-            elseif ($row['class_id'] == '1002') $class_name = "Business";
-            elseif ($row['class_id'] == '1003')$class_name = "First";
-            else $class_name = "Unknown";
-            echo "<option value='{$row['class_id']}'>$class_name</option>";
+=======
+        :root {
+            --dark-blue: #0d4b75ff;
+            --second-blue: #2c81baff;
+            --third-blue: #35acfcff;
+            --gray-colour: #465f6dff;
+            --white-color-light: #F4F4F4;
         }
-        ?>
-    </select>
-    
 
-    <label>Quantity of Seats:</label>
-    <input type="number" id="seat_qty" name="seat_qty" min="1" value="1" required oninput="updatePrice()">
 
-    <label>Price (₹):</label>
-    <input type="text" id="price" name="price" readonly>
+        body {
+            font-family: 'Cambria';
+            background: linear-gradient(to right, #b0d3fa, #a0d8ff);
+            padding: 40px;
+        }
 
-    <label>Total (₹):</label>
-    <input type="text" id="total" name="total" readonly>
+        h2 {
+            font-family: "Libertinus Serif";
+            font-size: 35px;
+            color: var(--dark-blue);
+            margin: 30px auto;
+            margin-bottom: 30px;
+        }
 
-    <input type="submit" value="Next ➜">
-</form>
+        p {
+            text-align: center;
+            color: #424242ff;
+            margin-bottom: 35px;
+            font-size: 16px;
+        }
 
-<script>
-const priceData = <?php echo json_encode($prices); ?>;
+        .video-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            z-index: -2;
+        }
 
-function updatePrice() {
-    const classSelect = document.getElementById('class_id');
-    const qtyInput = document.getElementById('seat_qty');
-    const priceBox = document.getElementById('price');
-    const totalBox = document.getElementById('total');
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(to bottom, rgba(0, 0, 59, 0.6), rgba(0, 0, 0, 0.8));
+            z-index: -1;
+            backdrop-filter: blur(2px);
+        }
 
-    const classId = classSelect.value;
-    const qty = parseInt(qtyInput.value) || 0;
-    const price = priceData[classId] || 0;
-    const total = price * qty;
 
-    priceBox.value = price;
-    totalBox.value = total;
-}
-</script>
+        form {
+            background: var(--white-color-light);
+            max-width: 500px;
+            margin: 40px auto;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+        }
+
+        label {
+            color: var(--second-blue);
+            display: block;
+            margin-top: 10px;
+            font-weight: bold;
+        }
+
+        select,
+        input {
+            width: 99%;
+            padding: 8px;
+            margin-top: 5px;
+            margin-bottom: 15px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            font-family: 'Cambria';
+            font-size: 16px;
+
+        }
+
+        input[type="number"],
+        input[type="text"],
+        input[type="submit"] {
+            width: 96%;
+            padding: 8px;
+            margin-top: 5px;
+            margin-bottom: 15px;
+            border-radius: 5px;
+            font-family: 'Cambria';
+            border: 1px solid #ccc;
+        }
+
+        input[type="submit"] {
+            background: linear-gradient(135deg, var(--second-blue), var(--dark-blue));
+            color: var(--white-color-light);
+            cursor: pointer;
+            padding: 10px 15px;
+            margin-top: 30px;
+            width: 100%;
+            border: none;
+            font-size: medium;
+            box-shadow: 0 0 15px rgba(53, 172, 252, 0.5);
+        }
+
+        input[type="submit"]:hover {
+            transform: scale(1.07);
+            box-shadow: 0 0 25px rgba(53, 172, 252, 0.3);
+            background: linear-gradient(135deg, var(--dark-blue), var(--second-blue));
+        }
+    </style>
+>>>>>>> main
+</head>
+
+<body>
+    <video autoplay muted loop class="video-bg">
+        <source src="From KlickPin CF [Video] timelapse of white clouds and blue sky di 2025 _ Desainsetyawandeddy050 (online-video-cutter.com).mp4" type="video/mp4">
+        Your browser does not support HTML5 video.
+    </video>
+    <div class="overlay"></div>
+
+
+    <form action="passenger.php" method="POST">
+        <h2 style="text-align:center;">Book a Flight</h2>
+        <input type="hidden" name="flight_id" value="<?php echo $flight_id; ?>">
+        <input type="hidden" name="flight_name" value="<?php echo $flight_name; ?>">
+        <input type="hidden" name="source" value="<?php echo $source; ?>">
+        <input type="hidden" name="destination" value="<?php echo $destination; ?>">
+        <input type="hidden" name="date" value="<?php echo $date; ?>">
+
+        <p>
+            <strong><?php echo $flight_name; ?></strong><br>
+            <?php echo $source; ?> → <?php echo $destination; ?>
+        </p>
+
+        <label>Class:</label>
+        <select name="class_id" id="class_id" required onchange="updatePrice()">
+            <option value="">Select Class</option>
+            <?php
+            $prices = [];
+            while ($row = $result->fetch_assoc()) {
+                $prices[$row['class_id']] = $row['price'];
+                if ($row['class_id'] == '1001') $class_name = "Economy";
+                elseif ($row['class_id'] == '1002') $class_name = "Business";
+                elseif ($row['class_id'] == '1003') $class_name = "First";
+                else $class_name = "Unknown";
+                echo "<option value='{$row['class_id']}'>$class_name</option>";
+            }
+            ?>
+        </select>
+
+
+        <label>Number of Seats:</label>
+        <input type="number" id="seat_qty" name="seat_qty" min="1" value="1" required oninput="updatePrice()">
+
+        <label>Price (₹):</label>
+        <input type="text" id="price" name="price" readonly>
+
+        <label>Total (₹):</label>
+        <input type="text" id="total" name="total" readonly>
+
+        <input type="submit" value="Next ➜">
+    </form>
+
+    <script>
+        const priceData = <?php echo json_encode($prices); ?>;
+
+        function updatePrice() {
+            const classSelect = document.getElementById('class_id');
+            const qtyInput = document.getElementById('seat_qty');
+            const priceBox = document.getElementById('price');
+            const totalBox = document.getElementById('total');
+
+            const classId = classSelect.value;
+            const qty = parseInt(qtyInput.value) || 0;
+            const price = priceData[classId] || 0;
+            const total = price * qty;
+
+            priceBox.value = price;
+            totalBox.value = total;
+        }
+    </script>
 
 </body>
+
 </html>
