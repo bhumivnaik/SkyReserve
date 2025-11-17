@@ -7,7 +7,9 @@ if ($conn->connect_error) {
 $booking = null;
 $error = "";
 $available_flights = [];
-$step = $_GET['step'] ?? 'segment'; // NEW: first step is choose segment
+
+// default step: if we later detect 2 flights, start at 'segment'; if 1 flight, we’ll override to 'date'
+$step    = $_GET['step']    ?? null;
 $segment = $_GET['segment'] ?? 'depart'; // 'depart' or 'return'
 
 // 1️⃣ Fetch booking
@@ -30,7 +32,35 @@ if (isset($_GET['id'])) {
     $error = "No booking selected.";
 }
 
-// 2️⃣ Fetch class options
+// 2️⃣ How many flights are tied to this booking?
+// Assumption: `booking` table has one row per segment OR you use another table (like `segment` or 2 rows).
+// We’ll count rows in booking with same booking_id. If count == 2 → two-way.
+$flight_count = 1;
+if ($booking) {
+    $count_sql = "SELECT COUNT(*) AS c FROM booking WHERE booking_id = ?";
+    $c_stmt = $conn->prepare($count_sql);
+    $c_stmt->bind_param("s", $booking['booking_id']);
+    $c_stmt->execute();
+    $c_res = $c_stmt->get_result();
+    if ($c_row = $c_res->fetch_assoc()) {
+        $flight_count = (int)$c_row['c'];
+    }
+    $c_stmt->close();
+}
+
+// if user just opened the page (no explicit step in URL yet)
+if ($step === null) {
+    if ($flight_count >= 2) {
+        // two segments → show depart/return selection first
+        $step = 'segment';
+    } else {
+        // one segment → directly go to date selection
+        $step = 'date';
+        $segment = 'depart'; // logically only "departure"
+    }
+}
+
+// 3️⃣ Fetch class options
 $class_options = [];
 $class_sql = "SELECT class_id, class_name FROM class";
 $class_result = $conn->query($class_sql);
@@ -40,31 +70,44 @@ if ($class_result && $class_result->num_rows > 0) {
     }
 }
 
-// Determine current values depending on segment
+// Determine current values depending on segment (fallback to single-date/class if columns don't exist)
 $current_date = "";
 $current_class_id = "";
 
 if ($booking) {
-    if ($segment === 'return') {
-        // adjust these column names to your schema
-        $current_date = $booking['return_date'] ?? $booking['date']; 
-        $current_class_id = $booking['return_class_id'] ?? $booking['class_id'];
-    } else { // depart
-        $current_date = $booking['depart_date'] ?? $booking['date']; 
-        $current_class_id = $booking['depart_class_id'] ?? $booking['class_id'];
+    if ($flight_count >= 2) {
+        // If you later add real separate cols, adjust here.
+        if ($segment === 'return') {
+            $current_date     = $booking['return_date']     ?? $booking['date'];
+            $current_class_id = $booking['return_class_id'] ?? $booking['class_id'];
+        } else {
+            $current_date     = $booking['depart_date']     ?? $booking['date'];
+            $current_class_id = $booking['depart_class_id'] ?? $booking['class_id'];
+        }
+    } else {
+        // pure one-way
+        $current_date     = $booking['date'];
+        $current_class_id = $booking['class_id'];
+        $segment          = 'depart';
     }
 }
 
-// 3️⃣ Step: select_flight – fetch flights for chosen date+segment
+// 4️⃣ Step: select_flight – fetch flights for chosen date+segment
 $selected_date = null;
-if ($booking && $step === 'select_flight' && isset($_GET['date_value']) && $_GET['date_value'] !== '') {
+if (
+    $booking &&
+    $step === 'select_flight' &&
+    isset($_GET['date_value']) &&
+    $_GET['date_value'] !== ''
+) {
     $selected_date = $_GET['date_value'];
 
-    // original flight id depends on segment
-    if ($segment === 'return') {
+    // original flight id depends on segment, but if one-way there’s only one
+    if ($flight_count >= 2 && $segment === 'return') {
+        // if you had a real return_flight_id column, use it here.
         $orig_flight_id = $booking['return_flight_id'] ?? $booking['flight_id'];
     } else {
-        $orig_flight_id = $booking['flight_id']; // depart
+        $orig_flight_id = $booking['flight_id'];
     }
 
     // Get route of that flight
@@ -75,9 +118,9 @@ if ($booking && $step === 'select_flight' && isset($_GET['date_value']) && $_GET
     $route_result = $route_stmt->get_result();
 
     $sourceAcode = null;
-    $destAcode = null;
+    $destAcode   = null;
     if ($route_result->num_rows > 0) {
-        $route_row = $route_result->fetch_assoc();
+        $route_row  = $route_result->fetch_assoc();
         $sourceAcode = $route_row['sourceAcode'];
         $destAcode   = $route_row['destAcode'];
     }
@@ -271,8 +314,6 @@ if ($booking && $step === 'select_flight' && isset($_GET['date_value']) && $_GET
         }
 
         .segment-options {
-            display: flex;
-            gap: 10px;
             margin-top: 10px;
         }
         .segment-options label {
@@ -295,19 +336,19 @@ if ($booking && $step === 'select_flight' && isset($_GET['date_value']) && $_GET
     <div class="manage-container">
         <h2>Update Your Booking</h2>
 
-        <?php if ($step === 'segment'): ?>
-            <!-- STEP 0: Choose which part of trip to edit -->
+        <?php if ($step === 'segment' && $flight_count >= 2): ?>
+            <!-- STEP 0: Choose which part of trip to edit (only if two flights) -->
             <form action="updatebooking.php" method="get">
                 <input type="hidden" name="id" value="<?= htmlspecialchars($booking['booking_id']) ?>">
                 <input type="hidden" name="step" value="date">
 
                 <label>What do you want to edit?</label>
                 <div class="segment-options">
-                    <input type="radio" id="seg_depart" name="segment" value="depart" checked>
+                    <input type="radio" id="seg_depart" name="segment" value="depart" <?= ($segment === 'depart') ? 'checked' : '' ?>>
                     <label for="seg_depart">Departure Flight (Going)</label>
                 </div>
                 <div class="segment-options">
-                    <input type="radio" id="seg_return" name="segment" value="return">
+                    <input type="radio" id="seg_return" name="segment" value="return" <?= ($segment === 'return') ? 'checked' : '' ?>>
                     <label for="seg_return">Return Flight</label>
                 </div>
 
@@ -321,8 +362,13 @@ if ($booking && $step === 'select_flight' && isset($_GET['date_value']) && $_GET
                 <input type="hidden" name="step" value="select_flight">
                 <input type="hidden" name="segment" value="<?= htmlspecialchars($segment) ?>">
 
-                <label>Editing</label>
-                <input type="text" value="<?= ($segment === 'return') ? 'Return Flight' : 'Departure Flight' ?>" disabled>
+                <?php if ($flight_count >= 2): ?>
+                    <label>Editing</label>
+                    <input type="text" value="<?= ($segment === 'return') ? 'Return Flight' : 'Departure Flight' ?>" disabled>
+                <?php else: ?>
+                    <label>Editing</label>
+                    <input type="text" value="Departure Flight" disabled>
+                <?php endif; ?>
 
                 <label>Current Date</label>
                 <input type="text" value="<?= htmlspecialchars($current_date) ?>" disabled>
@@ -348,7 +394,9 @@ if ($booking && $step === 'select_flight' && isset($_GET['date_value']) && $_GET
 
             <h3 style="color: var(--second-blue);">
                 Flights available on <?= htmlspecialchars($selected_date) ?>
-                (<?= ($segment === 'return') ? 'Return' : 'Departure' ?>)
+                <?php if ($flight_count >= 2): ?>
+                    (<?= ($segment === 'return') ? 'Return' : 'Departure' ?>)
+                <?php endif; ?>
             </h3>
 
             <?php if (empty($available_flights)): ?>
