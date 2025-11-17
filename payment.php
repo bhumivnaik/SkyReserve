@@ -169,6 +169,7 @@ $nextPayId = $_SESSION['nextPayId'];
             <input type="hidden" name="flight_id" value="<?php echo $flight_id; ?>">
             <input type="hidden" name="class_id" value="<?php echo $class_id; ?>">
             <input type="hidden" name="date" value="<?php echo $date; ?>">
+            <input type="hidden" name="seat_qty" value="<?php echo $qty; ?>">
             <input type="hidden" name="total" value="<?php echo $total; ?>">
             <!-- Passengers info -->
             <?php

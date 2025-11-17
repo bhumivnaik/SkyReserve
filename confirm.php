@@ -15,6 +15,7 @@ use PHPMailer\PHPMailer\Exception;
 $flight_id = $_SESSION['flight_id'] ?? '';
 $class_id = intval($_SESSION['class_id'] ?? 0);
 $date      = $_POST['date'] ?? '';
+$qty       = $_POST['seat_qty'] ?? 0;
 $total     = $_POST['total'] ?? 0;
 $mode      = $_POST['mode'] ?? '';
 
@@ -78,6 +79,10 @@ for ($i = 0; $i < $seats; $i++) {
     $stmtPass->execute();
     $passenger_ids[] = $conn->insert_id;
 }
+
+$updateSeats = $conn->prepare("UPDATE flightinstance SET available_seats = available_seats - ? WHERE flight_id = ?");
+$updateSeats->bind_param("is", $qty, $flight_id);
+$updateSeats->execute();
 
 // --- Insert into makes table ---
 $insertMakes = $conn->prepare("INSERT INTO makes (passenger_ID, booking_id, pay_id) VALUES (?, ?, ?)");
@@ -228,11 +233,11 @@ foreach ($passenger_ids as $index => $pid) {
         $mail->Host = 'smtp.gmail.com';
         $mail->SMTPAuth = true;
         $mail->Username = 'bhumivnaik@gmail.com'; // 🔹 Your Gmail
-        $mail->Password = '';   // 🔹 App Password
+        $mail->Password = 'hsuf atjj tczi ncty';   // 🔹 App Password
         $mail->SMTPSecure = 'tls';
         $mail->Port = 587;
 
-        $mail->setFrom('bhumiv@gmail.com', 'Airline Reservation');
+        $mail->setFrom('bhumivnaik@gmail.com', 'Airline Reservation');
         $mail->addAddress($emails[$index]); // Passenger email
         $mail->isHTML(true);
         $mail->Subject = 'Your Airline Ticket - ' . $flight_name;

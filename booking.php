@@ -172,7 +172,7 @@ $result = $conn->query($sql);
         </select>
 
 
-        <label>Quantity of Seats:</label>
+        <label>Number of Seats:</label>
         <input type="number" id="seat_qty" name="seat_qty" min="1" value="1" required oninput="updatePrice()">
 
         <label>Price (₹):</label>

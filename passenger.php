@@ -16,6 +16,16 @@ $total = $_POST['total'];
 $_SESSION['class_id'] = $class_id;
 $_SESSION['flight_id'] = $flight_id;
 
+$checkSeats = $conn->prepare("SELECT available_seats FROM flightinstance WHERE flight_id = ?");
+$checkSeats->bind_param("s", $flight_id);
+$checkSeats->execute();
+$res = $checkSeats->get_result();
+$row = $res->fetch_assoc();
+
+if ($row['available_seats'] < $qty) {
+    die("<h2 style='color:red;text-align:center'>Not enough seats available!</h2>");
+}
+
 // --- Generate next Booking ID ---
 $lastBooking = $conn->query("SELECT booking_id FROM booking ORDER BY booking_id DESC LIMIT 1")->fetch_assoc();
 if ($lastBooking) {

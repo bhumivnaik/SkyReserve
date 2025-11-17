@@ -180,24 +180,24 @@ transform: scale(1.07);
 ";
 
 
+if ($trip === 'oneway') {
+    // --- Going flights table ---
+    echo "<h3 style='text-align:left;'>Going Flights</h3>";
 
-// --- Going flights table ---
-echo "<h3 style='text-align:left;'>Going Flights</h3>";
-
-if ($result->num_rows > 0) {
-    echo "<table>
+    if ($result->num_rows > 0) {
+        echo "<table>
             <tr>
                 <th>Flight</th><th>Source</th><th>Destination</th>
                 <th>Date</th><th>Departure</th><th>Arrival</th>
                 <th>Available Seats</th><th>Book</th>
             </tr>";
-    while ($row = $result->fetch_assoc()) {
-        $flight_id = urlencode($row['flight_id']);
-        $flight_name = htmlspecialchars($row['flight_name']);
-        $from = htmlspecialchars($row['source_city']);
-        $to = htmlspecialchars($row['destination_city']);
-        $dateVal = htmlspecialchars($row['date']);
-        echo "<tr>
+        while ($row = $result->fetch_assoc()) {
+            $flight_id = urlencode($row['flight_id']);
+            $flight_name = htmlspecialchars($row['flight_name']);
+            $from = htmlspecialchars($row['source_city']);
+            $to = htmlspecialchars($row['destination_city']);
+            $dateVal = htmlspecialchars($row['date']);
+            echo "<tr>
                 <td>$flight_name</td>
                 <td>$from</td>
                 <td>$to</td>
@@ -207,71 +207,92 @@ if ($result->num_rows > 0) {
                 <td>{$row['available_seats']}</td>
                 <td><a href='booking.php?flight_id=$flight_id&source=$from&flight_name=$flight_name&destination=$to&date=$dateVal' class='book-btn'>Book Now</a></td>
               </tr>";
+        }
+        echo "</table>";
+    } else {
+        echo "<p class='no-data'>No flights available for this route.</p>";
     }
-    echo "</table>";
-} else {
-    echo "<p class='no-data'>No flights available for this route.</p>";
 }
-
 // --- Return flights (only for two-way trip) ---
 if ($trip === 'twoway') {
-    echo "<h3 style='text-align:center;'>Return Flights</h3>";
+
+    echo "<form action='twoway/2waybooking.php' method='POST'>";
+
+    echo "<h3>Going Flights</h3>";
+
+    if ($result->num_rows > 0) {
+        echo "<table>
+            <tr>
+                <th>Select</th>
+                <th>Flight</th><th>Source</th><th>Destination</th>
+                <th>Date</th><th>Departure</th><th>Arrival</th>
+                <th>Available Seats</th>
+            </tr>";
+
+        while ($row = $result->fetch_assoc()) {
+            echo "<tr>
+                <td><input type='radio' name='outgoing' value='{$row['flight_id']}' required></td>
+                <td>{$row['flight_name']}</td>
+                <td>{$row['source_city']}</td>
+                <td>{$row['destination_city']}</td>
+                <td>{$row['date']}</td>
+                <td>{$row['departure_time']}</td>
+                <td>{$row['arrival_time']}</td>
+                <td>{$row['available_seats']}</td>
+            </tr>";
+        }
+
+        echo "</table>";
+    } else {
+        echo "<p class='no-data'>No outbound flights found.</p>";
+    }
+
+    echo "<h3>Return Flights</h3>";
 
     $returnDateCondition = buildDateCondition("fi.date", $return_date);
 
-    $sql2 = "
-    SELECT 
-        f.flight_id, f.flight_name,
-        a1.city AS source_city,
-        a2.city AS destination_city,
-        fi.departure_time, fi.arrival_time, fi.available_seats, fi.date
-    FROM flight f
-    JOIN airport a1 ON f.sourceAcode = a1.acode
-    JOIN airport a2 ON f.destAcode = a2.acode
-    JOIN flightinstance fi ON f.flight_id = fi.flight_id
-    WHERE (
-            a1.city = '$destination'
-         OR a1.state = '$destination'
-         OR a1.country = '$destination'
-         )
-      AND (
-            a2.city = '$source'
-         OR a2.state = '$source'
-         OR a2.country = '$source'
-         )
-      $returnDateCondition
-    ORDER BY fi.date, fi.departure_time;
-    ";
-
+    $sql2 = "SELECT f.flight_id, f.flight_name, a1.city AS source_city, a2.city AS destination_city, fi.departure_time, fi.arrival_time, fi.available_seats, fi.date FROM flight f JOIN airport a1 ON f.sourceAcode = a1.acode JOIN airport a2 ON f.destAcode = a2.acode JOIN flightinstance fi ON f.flight_id = fi.flight_id WHERE ( a1.city = '$destination' OR a1.state = '$destination' OR a1.country = '$destination' ) AND ( a2.city = '$source' OR a2.state = '$source' OR a2.country = '$source' ) $returnDateCondition ORDER BY fi.date, fi.departure_time;";
     $res2 = $conn->query($sql2);
 
     if ($res2->num_rows > 0) {
         echo "<table>
-                <tr>
-                    <th>Flight</th><th>Source</th><th>Destination</th>
-                    <th>Date</th><th>Departure</th><th>Arrival</th>
-                    <th>Available Seats</th><th>Book</th>
-                </tr>";
+            <tr>
+                <th>Select</th>
+                <th>Flight</th><th>Source</th><th>Destination</th>
+                <th>Date</th><th>Departure</th><th>Arrival</th>
+                <th>Available Seats</th>
+            </tr>";
+
         while ($r2 = $res2->fetch_assoc()) {
-            $fid = urlencode($r2['flight_id']);
-            $fname = htmlspecialchars($r2['flight_name']);
-            $src = htmlspecialchars($r2['source_city']);
-            $dst = htmlspecialchars($r2['destination_city']);
-            $dte = htmlspecialchars($r2['date']);
             echo "<tr>
-                    <td>$fname</td>
-                    <td>$src</td>
-                    <td>$dst</td>
-                    <td>$dte</td>
-                    <td>{$r2['departure_time']}</td>
-                    <td>{$r2['arrival_time']}</td>
-                    <td>{$r2['available_seats']}</td>
-                    <td><a href='booking.php?flight_id=$fid&flight_name=$fname&source=$src&destination=$dst&date=$dte' class='book-btn'>Book Now</a></td>
-                  </tr>";
+                <td><input type='radio' name='returning' value='{$r2['flight_id']}' required></td>
+                <td>{$r2['flight_name']}</td>
+                <td>{$r2['source_city']}</td>
+                <td>{$r2['destination_city']}</td>
+                <td>{$r2['date']}</td>
+                <td>{$r2['departure_time']}</td>
+                <td>{$r2['arrival_time']}</td>
+                <td>{$r2['available_seats']}</td>
+            </tr>";
         }
+
         echo "</table>";
     } else {
         echo "<p class='no-data'>No return flights found.</p>";
     }
+
+    // Hidden values
+    echo "
+        <input type='hidden' name='trip' value='twoway'>
+        <input type='hidden' name='source' value='$source'>
+        <input type='hidden' name='destination' value='$destination'>
+        <input type='hidden' name='date' value='$date'>
+        <input type='hidden' name='return_date' value='$return_date'>
+    ";
+
+    echo "<br><center>
+        <button type='submit' class='book-btn'>Book Selected Flights</button>
+    </center></form>";
 }
+
 echo "</div></body></html>";
