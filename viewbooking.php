@@ -19,7 +19,7 @@ if (isset($_GET['id']) && isset($_GET['email'])) {
             LIMIT 1";
 
     $stmt = $conn->prepare($sql);
-    $stmt->bind_param("is", $id, $email);
+    $stmt->bind_param("ss", $id, $email);
     $stmt->execute();
     $result = $stmt->get_result();
 
@@ -78,7 +78,7 @@ if (isset($_GET['id']) && isset($_GET['email'])) {
         .manage-container {
             max-width: 500px;
             margin: auto;
-            background: white;
+            background: var(--white-color-light);
             padding: 35px;
             border-radius: 14px;
             box-shadow: 0 8px 25px rgba(0, 0, 0, 0.25);
@@ -102,7 +102,7 @@ if (isset($_GET['id']) && isset($_GET['email'])) {
 
         /* Each detail box */
         .detail-box {
-            background: var(--white-color-light);
+            background: #eae8e8ff;
             border-radius: 12px;
             padding: 18px;
             border-left: 6px solid var(--second-blue);
@@ -131,9 +131,10 @@ if (isset($_GET['id']) && isset($_GET['email'])) {
         }
 
         /* Update Booking Button */
-        .btn-update {
+        .btn-update,
+        .btn-delete {
             display: block;
-            margin: 35px auto 10px auto;
+            margin-top: 25px;
             text-align: center;
             width: 94%;
             background: linear-gradient(135deg, var(--second-blue), var(--dark-blue));
@@ -149,7 +150,8 @@ if (isset($_GET['id']) && isset($_GET['email'])) {
             transition: 0.3s ease;
         }
 
-        .btn-update:hover {
+        .btn-update:hover,
+        .btn-delete:hover {
             transform: scale(1.07);
             box-shadow: 0 0 25px rgba(53, 172, 252, 0.3);
             background: linear-gradient(135deg, var(--dark-blue), var(--second-blue));
@@ -180,6 +182,18 @@ if (isset($_GET['id']) && isset($_GET['email'])) {
             font-size: 18px;
             color: white;
             margin-top: 20px;
+        }
+
+        .action-buttons {
+            display: flex;
+            justify-content: space-between;
+            gap: 15px;
+            margin-top: 35px;
+        }
+
+        .action-buttons a {
+            flex: 1;
+            text-align: center;
         }
     </style>
 
@@ -238,7 +252,10 @@ if (isset($_GET['id']) && isset($_GET['email'])) {
 
             </div>
 
-            <a class="btn-update" href="updatebooking.php?id=<?= $booking['booking_id'] ?>">Update Booking</a>
+            <div class="action-buttons">
+                <a class="btn-update" href="updatebooking.php?id=<?= $booking['booking_id'] ?>">Update Booking</a>
+                <a class="btn-delete" href="deletebooking.php?booking_id=<?= urlencode($booking['booking_id']) ?>">Delete Booking</a>
+            </div>
 
         <?php else: ?>
             <p class="no-result"><?= $error ?></p>
