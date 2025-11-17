@@ -233,7 +233,7 @@ foreach ($passenger_ids as $index => $pid) {
         $mail->Host = 'smtp.gmail.com';
         $mail->SMTPAuth = true;
         $mail->Username = 'bhumivnaik@gmail.com'; // 🔹 Your Gmail
-        $mail->Password = 'hsuf atjj tczi ncty';   // 🔹 App Password
+        $mail->Password = '';   // 🔹 App Password
         $mail->SMTPSecure = 'tls';
         $mail->Port = 587;
 
@@ -420,5 +420,6 @@ foreach ($passenger_ids as $index => $pid) {
     </div>
 
 </body>
+
 
 </html>
