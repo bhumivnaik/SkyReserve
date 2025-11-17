@@ -102,23 +102,26 @@ for ($i = 0; $i < $qty; $i++) {
 -----------------------------------------------------*/
 $booking_id = nextBookingID($conn);
 
+$booking_date = date('Y-m-d');
+$status = "Confirmed";
 // Insert outbound booking
 $stmt = $conn->prepare("
-    INSERT INTO booking(booking_id, flight_id, class_id, date, seatsbooked)
+    INSERT INTO booking(booking_id, flight_id, class_id, date, seatsbooked, status)
     VALUES (?, ?, ?, ?, ?)
 ");
-$stmt->bind_param("ssisi", $booking_id, $out_flight_id, $out_class_id, $out_date, $qty);
+$stmt->bind_param("ssisi", $booking_id, $out_flight_id, $out_class_id, $booking_date, $qty, $status);
 $stmt->execute();
 
 // Insert return booking (same booking id)
 if ($trip_type == "twoway") {
     $stmt = $conn->prepare("
-        INSERT INTO booking(booking_id, flight_id, class_id, date, seatsbooked)
+        INSERT INTO booking(booking_id, flight_id, class_id, date, seatsbooked,status)
         VALUES (?, ?, ?, ?, ?)
     ");
-    $stmt->bind_param("ssisi", $booking_id, $ret_flight_id, $ret_class_id, $ret_date, $qty);
+    $stmt->bind_param("ssisi", $booking_id, $ret_flight_id, $ret_class_id, $booking_date, $qty, $status);
     $stmt->execute();
 }
+
 
 
 /* ---------------------------------------------------
