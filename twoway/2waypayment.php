@@ -9,7 +9,8 @@ $total     = $_POST['total'] ?? 0;
 $date      = $_POST['date'] ?? '';
 $out_flight_id = $_POST['out_flight_id'];
 $ret_flight_id = $_POST['ret_flight_id'];
-
+$out_date = $_POST['out_date'] ?? null;
+$ret_date = $_POST['ret_date'] ?? null;
 $out_class_id = intval($_POST['out_class_id'] ?? 0);
 $ret_class_id = intval($_POST['ret_class_id'] ?? 0);
 
@@ -176,6 +177,8 @@ if ($lastPay) {
             <input type="hidden" name="total" value="<?php echo $total; ?>">
             <input type="hidden" name="out_flight_id" value="<?php echo $_POST['out_flight_id'] ?? ''; ?>">
             <input type="hidden" name="ret_flight_id" value="<?php echo $_POST['ret_flight_id'] ?? ''; ?>">
+            <input type="hidden" name="out_date" value="<?= $out_date ?>">
+            <input type="hidden" name="ret_date" value="<?= $ret_date ?>">
 
             <input type="hidden" name="out_class_id" value="<?php echo $_POST['out_class_id'] ?? $class_id; ?>">
             <input type="hidden" name="ret_class_id" value="<?php echo $_POST['ret_class_id'] ?? ''; ?>">
