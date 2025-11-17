@@ -23,7 +23,7 @@ $ret_flight_id  = $_POST['ret_flight_id'] ?? '';
 $out_class_id   = intval($_POST['out_class_id'] ?? 0);
 $ret_class_id   = intval($_POST['ret_class_id'] ?? 0);
 
-$out_date       = $_POST['date'] ?? '';
+$out_date       = $_POST['out_date'] ?? '';
 $ret_date       = $_POST['ret_date'] ?? '';
 
 $qty            = intval($_POST['seat_qty']);
@@ -102,26 +102,24 @@ for ($i = 0; $i < $qty; $i++) {
 -----------------------------------------------------*/
 $booking_id = nextBookingID($conn);
 
-$booking_date = date('Y-m-d');
 $status = "Confirmed";
 // Insert outbound booking
 $stmt = $conn->prepare("
     INSERT INTO booking(booking_id, flight_id, class_id, date, seatsbooked, status)
-    VALUES (?, ?, ?, ?, ?)
+    VALUES (?, ?, ?, ?, ?,?)
 ");
-$stmt->bind_param("ssisi", $booking_id, $out_flight_id, $out_class_id, $booking_date, $qty, $status);
+$stmt->bind_param("ssisis", $booking_id, $out_flight_id, $out_class_id, $out_date, $qty, $status);
 $stmt->execute();
 
 // Insert return booking (same booking id)
 if ($trip_type == "twoway") {
     $stmt = $conn->prepare("
         INSERT INTO booking(booking_id, flight_id, class_id, date, seatsbooked,status)
-        VALUES (?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?,?)
     ");
-    $stmt->bind_param("ssisi", $booking_id, $ret_flight_id, $ret_class_id, $booking_date, $qty, $status);
+    $stmt->bind_param("ssisis", $booking_id, $ret_flight_id, $ret_class_id, $ret_date, $qty, $status);
     $stmt->execute();
 }
-
 
 
 /* ---------------------------------------------------
@@ -158,6 +156,7 @@ $outQuery = $conn->query(" SELECT f.flight_id, f.flight_name,
             JOIN airport a2 ON f.destAcode = a2.acode
             JOIN flightinstance fi ON f.flight_id = fi.flight_id
             WHERE f.flight_id='$out_flight_id'
+            AND fi.date='$out_date'
             LIMIT 1
 ");
 $outData = $outQuery->fetch_assoc();
@@ -174,6 +173,7 @@ if ($trip_type == "twoway") {
             JOIN airport a2 ON f.destAcode = a2.acode
             JOIN flightinstance fi ON f.flight_id = fi.flight_id
             WHERE f.flight_id='$ret_flight_id'
+            AND fi.date='$ret_date'
             LIMIT 1");
     $retData = $retQuery->fetch_assoc();
 }
@@ -550,7 +550,7 @@ foreach ($passenger_ids as $index => $pid) {
         <!-- TOP SUMMARY BOX -->
         <div class="summary-box">
             <div class="box-title">Booking Summary</div>
-
+            <div class="detail-row"><b>Booking ID:</b> <?= $booking_id ?></div>
             <div class="detail-row"><b>Payment ID:</b> <?= $pay_id ?></div>
             <div class="detail-row"><b>Trip Type:</b> <?= strtoupper($trip_type) ?></div>
             <div class="detail-row"><b>Total Passengers:</b> <?= $qty ?></div>
