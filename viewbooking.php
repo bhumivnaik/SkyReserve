@@ -4,7 +4,7 @@ if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
 
-$booking = null;
+$bookings = [];
 $error = "";
 
 if (isset($_GET['id']) && isset($_GET['email'])) {
@@ -15,8 +15,7 @@ if (isset($_GET['id']) && isset($_GET['email'])) {
             FROM booking b
             JOIN makes m ON m.booking_id = b.booking_id
             JOIN passenger p ON p.passenger_ID = m.passenger_ID
-            WHERE b.booking_id = ? AND p.email = ?
-            LIMIT 1";
+            WHERE b.booking_id = ? AND p.email = ?";
 
     $stmt = $conn->prepare($sql);
     $stmt->bind_param("ss", $id, $email);
@@ -24,7 +23,9 @@ if (isset($_GET['id']) && isset($_GET['email'])) {
     $result = $stmt->get_result();
 
     if ($result->num_rows > 0) {
-        $booking = $result->fetch_assoc();
+        while ($row = $result->fetch_assoc()) {
+            $bookings[] = $row;
+        }
     } else {
         $error = "No booking found. Please check your details.";
     }
@@ -76,7 +77,7 @@ if (isset($_GET['id']) && isset($_GET['email'])) {
         }
 
         .manage-container {
-            max-width: 500px;
+            max-width: 650px;
             margin: auto;
             background: var(--white-color-light);
             padding: 35px;
@@ -90,53 +91,86 @@ if (isset($_GET['id']) && isset($_GET['email'])) {
             font-family: "Libertinus Serif";
             color: var(--dark-blue);
             font-size: 35px;
-            margin-bottom: 45px;
+            margin-bottom: 10px;
         }
 
-        /* Grid styling */
-        .booking-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 22px;
+        .subtitle {
+            text-align: center;
+            color: var(--gray-colour);
+            margin-bottom: 30px;
+            font-size: 15px;
         }
 
-        /* Each detail box */
-        .detail-box {
+        /* Layout for each segment */
+        .segment-card {
             background: #eae8e8ff;
             border-radius: 12px;
             padding: 18px;
+            margin-bottom: 18px;
             border-left: 6px solid var(--second-blue);
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
             transition: 0.3s ease;
         }
 
-        .detail-box:hover {
+        .segment-card:hover {
             transform: translateY(-4px);
             box-shadow: 0 6px 18px rgba(0, 0, 0, 0.20);
         }
 
-        .detail-title {
-            font-size: 13px;
+        .segment-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-size: 14px;
             color: var(--second-blue);
             text-transform: uppercase;
             letter-spacing: 0.7px;
         }
 
-        /* Values */
-        .detail-value {
-            font-size: 17px;
+        .segment-title {
             font-weight: 700;
-            margin-top: 6px;
+        }
+
+        .booking-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 14px;
+        }
+
+        .detail-box {
+            background: #ffffff;
+            border-radius: 10px;
+            padding: 10px 12px;
+            border-left: 4px solid var(--second-blue);
+            box-shadow: 0 1px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .detail-title {
+            font-size: 11px;
+            color: var(--second-blue);
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+        }
+
+        .detail-value {
+            font-size: 16px;
+            font-weight: 700;
+            margin-top: 4px;
             color: var(--gray-colour);
         }
 
-        /* Update Booking Button */
+        .action-buttons {
+            display: flex;
+            justify-content: space-between;
+            gap: 15px;
+            margin-top: 25px;
+        }
+
         .btn-update,
         .btn-delete {
             display: block;
-            margin-top: 25px;
             text-align: center;
-            width: 94%;
+            width: 100%;
             background: linear-gradient(135deg, var(--second-blue), var(--dark-blue));
             color: white;
             padding: 14px;
@@ -145,8 +179,6 @@ if (isset($_GET['id']) && isset($_GET['email'])) {
             font-size: 16px;
             font-weight: 600;
             box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
-            position: relative;
-            overflow: hidden;
             transition: 0.3s ease;
         }
 
@@ -157,43 +189,11 @@ if (isset($_GET['id']) && isset($_GET['email'])) {
             background: linear-gradient(135deg, var(--dark-blue), var(--second-blue));
         }
 
-
-        /* Back button */
-        .back-home {
-            display: block;
-            margin: 10px auto 0 auto;
-            text-align: center;
-            width: 60%;
-            color: var(--dark-blue);
-            font-weight: 600;
-            text-decoration: none;
-            font-size: 17px;
-            transition: 0.25s ease;
-        }
-
-        .back-home:hover {
-            color: var(--third-blue);
-            letter-spacing: 0.5px;
-        }
-
-        /* No result message */
         .no-result {
             text-align: center;
             font-size: 18px;
             color: white;
             margin-top: 20px;
-        }
-
-        .action-buttons {
-            display: flex;
-            justify-content: space-between;
-            gap: 15px;
-            margin-top: 35px;
-        }
-
-        .action-buttons a {
-            flex: 1;
-            text-align: center;
         }
     </style>
 
@@ -206,55 +206,65 @@ if (isset($_GET['id']) && isset($_GET['email'])) {
     </video>
     <div class="overlay"></div>
 
-
     <div class="manage-container">
 
         <h2>Your Booking Overview</h2>
 
-        <?php if ($booking): ?>
+        <?php if (!empty($bookings)): ?>
+            <p class="subtitle">
+                Booking ID: <strong><?= htmlspecialchars($bookings[0]['booking_id']) ?></strong><br>
+                Email: <strong><?= htmlspecialchars($bookings[0]['email']) ?></strong>
+            </p>
 
-            <div class="booking-grid">
+            <?php
+            $segmentNumber = 1;
+            foreach ($bookings as $booking):
+            ?>
+                <div class="segment-card">
+                    <div class="segment-header">
+                        <span class="segment-title">
+                            Segment <?= $segmentNumber == 1 ? "1 (Onward)" : "2 (Return)" ?>
+                        </span>
+                        <span>
+                            Status: <?= htmlspecialchars($booking['status']) ?>
+                        </span>
+                    </div>
 
-                <div class="detail-box">
-                    <div class="detail-title">Booking ID</div>
-                    <div class="detail-value"><?= $booking['booking_id'] ?></div>
+                    <div class="booking-grid">
+                        <div class="detail-box">
+                            <div class="detail-title">Date</div>
+                            <div class="detail-value"><?= htmlspecialchars($booking['date']) ?></div>
+                        </div>
+
+                        <div class="detail-box">
+                            <div class="detail-title">Flight ID</div>
+                            <div class="detail-value"><?= htmlspecialchars($booking['flight_id']) ?></div>
+                        </div>
+
+                        <div class="detail-box">
+                            <div class="detail-title">Seats Booked</div>
+                            <div class="detail-value"><?= htmlspecialchars($booking['seatsbooked']) ?></div>
+                        </div>
+
+                        <div class="detail-box">
+                            <div class="detail-title">Class</div>
+                            <div class="detail-value"><?= htmlspecialchars($booking['class_id']) ?></div>
+                        </div>
+                    </div>
                 </div>
-
-                <div class="detail-box">
-                    <div class="detail-title">Date</div>
-                    <div class="detail-value"><?= $booking['date'] ?></div>
-                </div>
-
-                <div class="detail-box">
-                    <div class="detail-title">Status</div>
-                    <div class="detail-value"><?= $booking['status'] ?></div>
-                </div>
-
-                <div class="detail-box">
-                    <div class="detail-title">Flight ID</div>
-                    <div class="detail-value"><?= $booking['flight_id'] ?></div>
-                </div>
-
-                <div class="detail-box">
-                    <div class="detail-title">Seats Booked</div>
-                    <div class="detail-value"><?= $booking['seatsbooked'] ?></div>
-                </div>
-
-                <div class="detail-box">
-                    <div class="detail-title">Class</div>
-                    <div class="detail-value"><?= $booking['class_id'] ?></div>
-                </div>
-
-                <div class="detail-box">
-                    <div class="detail-title">Email</div>
-                    <div class="detail-value"><?= $booking['email'] ?></div>
-                </div>
-
-            </div>
+            <?php
+                $segmentNumber++;
+            endforeach;
+            ?>
 
             <div class="action-buttons">
-                <a class="btn-update" href="updatebooking.php?id=<?= $booking['booking_id'] ?>">Update Booking</a>
-                <a class="btn-delete" href="deletebooking.php?booking_id=<?= urlencode($booking['booking_id']) ?>">Delete Booking</a>
+                <!-- update based on whole booking ID (same for both segments) -->
+                <a class="btn-update" href="updatebooking.php?id=<?= urlencode($bookings[0]['booking_id']) ?>">
+                    Update Booking
+                </a>
+                <a class="btn-delete" href="deletebooking.php?booking_id=<?= urlencode($bookings[0]['booking_id']) ?>">
+                    Delete Booking
+                </a>
             </div>
 
         <?php else: ?>

@@ -4,17 +4,30 @@ if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
 
-// RECEIVE DATA VIA post
-$booking_id   = $_POST['booking_id'] ?? null;
-$new_date     = $_POST['new_date'] ?? "";
-$new_class    = $_POST['class_value'] ?? "";
+// RECEIVE DATA VIA POST
+$booking_id    = $_POST['booking_id']   ?? null;
+$new_date      = $_POST['new_date']     ?? "";
+$new_class     = $_POST['class_value']  ?? "";
 $f_instance_id = $_POST['f_instance_id'] ?? null;
+$segment       = $_POST['segment']      ?? 'depart';   // 'depart' or 'return' (used only for display text)
 
 if (!$booking_id) {
     die("Invalid request. Booking ID missing.");
 }
 
-// Get flight_id and some details from flightinstance + flight
+// Get existing booking
+$sql = "SELECT * FROM booking WHERE booking_id = ? LIMIT 1";
+$stmt = $conn->prepare($sql);
+$stmt->bind_param("s", $booking_id);
+$stmt->execute();
+$booking_result = $stmt->get_result();
+if ($booking_result->num_rows === 0) {
+    die("Booking not found.");
+}
+$booking = $booking_result->fetch_assoc();
+$stmt->close();
+
+// Get flight + instance details if chosen
 $flight_info = null;
 if ($f_instance_id) {
     $sql = "SELECT fi.f_instance_id, fi.flight_id, fi.departure_time, fi.arrival_time, fi.date, fi.available_seats,
@@ -33,50 +46,38 @@ if ($f_instance_id) {
     $stmt->close();
 }
 
-// --- UPDATE BOOKING ---
-// Build dynamic SQL so we can update date, class, flight_id depending on what we have
-$fields = [];
-$params = [];
-$types  = "";
+/*
+   If you want to adjust available_seats in flightinstance for old vs new instance,
+   you can do it here using $booking['seatsbooked'] and $f_instance_id.
+*/
 
-// --- UPDATE DATE ---
+// --- UPDATE booking TABLE ---
+// 1) Update date (single 'date' column in your current schema)
 if (!empty($new_date)) {
     $sql = "UPDATE booking SET date = ? WHERE booking_id = ?";
     $stmt = $conn->prepare($sql);
     $stmt->bind_param("ss", $new_date, $booking_id);
     $stmt->execute();
+    $stmt->close();
 }
 
-// --- UPDATE CLASS ---
+// 2) Update class_id
 if (!empty($new_class)) {
     $sql = "UPDATE booking SET class_id = ? WHERE booking_id = ?";
     $stmt = $conn->prepare($sql);
     $stmt->bind_param("ss", $new_class, $booking_id);
     $stmt->execute();
-}
-
-// If user chose a flight instance (and we got flight_id)
-if ($flight_info) {
-    $fields[] = "flight_id = ?";
-    $params[] = $flight_info['flight_id'];
-    $types   .= "s";
-}
-
-if (!empty($fields)) {
-    $sql = "UPDATE booking SET " . implode(", ", $fields) . " WHERE booking_id = ?";
-    $params[] = $booking_id;
-    $types   .= "s";
-
-    $stmt = $conn->prepare($sql);
-    // bind_param wants separate arguments
-    $stmt->bind_param($types, ...$params);
-    $stmt->execute();
     $stmt->close();
 }
 
-// (Optional) You could adjust available_seats here if you are tracking per instance,
-// for example reduce seats or mark something, but I’m not changing that logic now.
-
+// 3) Update flight_id if we selected a flight instance
+if ($flight_info) {
+    $sql = "UPDATE booking SET flight_id = ? WHERE booking_id = ?";
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param("ss", $flight_info['flight_id'], $booking_id);
+    $stmt->execute();
+    $stmt->close();
+}
 ?>
 <!DOCTYPE html>
 <html>
@@ -121,18 +122,6 @@ if (!empty($fields)) {
             backdrop-filter: blur(2px);
         }
 
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
         .success-icon {
             font-size: 55px;
             color: var(--second-blue);
@@ -145,7 +134,6 @@ if (!empty($fields)) {
                 transform: scale(0);
                 opacity: 0;
             }
-
             100% {
                 transform: scale(1);
                 opacity: 1;
@@ -160,54 +148,6 @@ if (!empty($fields)) {
             margin-bottom: 20px;
         }
 
-        .details {
-            background: #e7e2e2ff;
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            border-left: 4px solid var(--second-blue);
-        }
-
-        .details p {
-            margin: 5px 0;
-            color: var(--gray-colour);
-        }
-
-        .info p {
-            font-size: 17px;
-            color: var(--gray-colour);
-            margin: 10px 0;
-        }
-
-        .divider {
-            border: 0;
-            height: 1px;
-            background: #d1d1d1;
-            margin: 25px 0;
-        }
-
-        a {
-            display: inline-block;
-            background: linear-gradient(135deg, var(--second-blue), var(--dark-blue));
-            color: white;
-            margin-top: 20px;
-            padding: 12px 28px;
-            font-size: 16px;
-            font-weight: 600;
-            text-decoration: none;
-            border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-            transition: 0.25s ease;
-        }
-
-        a:hover {
-            transform: scale(1.07);
-            background: linear-gradient(135deg, var(--dark-blue), var(--second-blue));
-            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
-        }
-
-
-        /*new*/
         .manage-container {
             max-width: 500px;
             margin: auto;
@@ -219,16 +159,11 @@ if (!empty($fields)) {
             position: relative;
         }
 
-        .back {
-            text-align: center;
-        }
-
         .subtext {
             color: var(--gray-colour);
             margin-bottom: 20px;
         }
 
-        /* BOOKING SUMMARY BOXES */
         .summary-grid {
             margin-top: 20px;
             text-align: left;
@@ -255,6 +190,26 @@ if (!empty($fields)) {
             color: var(--gray-colour);
             margin-top: 4px;
         }
+
+        a {
+            display: inline-block;
+            background: linear-gradient(135deg, var(--second-blue), var(--dark-blue));
+            color: white;
+            margin-top: 20px;
+            padding: 12px 28px;
+            font-size: 16px;
+            font-weight: 600;
+            text-decoration: none;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            transition: 0.25s ease;
+        }
+
+        a:hover {
+            transform: scale(1.07);
+            background: linear-gradient(135deg, var(--dark-blue), var(--second-blue));
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+        }
     </style>
 </head>
 
@@ -265,11 +220,17 @@ if (!empty($fields)) {
     </video>
     <div class="overlay"></div>
 
-
     <div class="manage-container">
         <div class="success-icon">✔</div>
         <h2>Booking Updated Successfully</h2>
-        <p class="subtext">Your changes have been applied. Here’s your updated trip summary.</p>
+        <p class="subtext">
+            Your changes have been applied 
+            <?php if ($segment === 'return'): ?>
+                to your <strong>Return</strong> preferences.
+            <?php else: ?>
+                to your <strong>Departure</strong> preferences.
+            <?php endif; ?>
+        </p>
 
         <div class="summary-grid">
 
@@ -317,11 +278,18 @@ if (!empty($fields)) {
                     </div>
                 </div>
             <?php endif; ?>
-            <div class="back"> <a href="index.html">Back to Home</a>
+
+            <div class="summary-row">
+                <div class="summary-label">Segment Edited</div>
+                <div class="summary-value">
+                    <?= ($segment === 'return') ? 'Return Flight' : 'Departure Flight' ?>
+                </div>
             </div>
+
         </div>
+
+        <a href="managebooking.php">Back to Manage Booking</a>
     </div>
 
 </body>
-
 </html>

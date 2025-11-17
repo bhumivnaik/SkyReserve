@@ -7,8 +7,10 @@ if ($conn->connect_error) {
 $booking = null;
 $error = "";
 $available_flights = [];
-$step = $_GET['step'] ?? 'date';
+$step = $_GET['step'] ?? 'segment'; // NEW: first step is choose segment
+$segment = $_GET['segment'] ?? 'depart'; // 'depart' or 'return'
 
+// 1️⃣ Fetch booking
 if (isset($_GET['id'])) {
     $id = $_GET['id'];
 
@@ -28,7 +30,7 @@ if (isset($_GET['id'])) {
     $error = "No booking selected.";
 }
 
-// --- Fetch class options from the 'class' table ---
+// 2️⃣ Fetch class options
 $class_options = [];
 $class_sql = "SELECT class_id, class_name FROM class";
 $class_result = $conn->query($class_sql);
@@ -38,15 +40,34 @@ if ($class_result && $class_result->num_rows > 0) {
     }
 }
 
-// If user has chosen a new date, move to step "select_flight"
+// Determine current values depending on segment
+$current_date = "";
+$current_class_id = "";
+
+if ($booking) {
+    if ($segment === 'return') {
+        // adjust these column names to your schema
+        $current_date = $booking['return_date'] ?? $booking['date']; 
+        $current_class_id = $booking['return_class_id'] ?? $booking['class_id'];
+    } else { // depart
+        $current_date = $booking['depart_date'] ?? $booking['date']; 
+        $current_class_id = $booking['depart_class_id'] ?? $booking['class_id'];
+    }
+}
+
+// 3️⃣ Step: select_flight – fetch flights for chosen date+segment
 $selected_date = null;
 if ($booking && $step === 'select_flight' && isset($_GET['date_value']) && $_GET['date_value'] !== '') {
     $selected_date = $_GET['date_value'];
 
-    // Fetch available flight instances on that date for the SAME route as original flight
-    // First, get original flight's source/destination
-    $orig_flight_id = $booking['flight_id'];
+    // original flight id depends on segment
+    if ($segment === 'return') {
+        $orig_flight_id = $booking['return_flight_id'] ?? $booking['flight_id'];
+    } else {
+        $orig_flight_id = $booking['flight_id']; // depart
+    }
 
+    // Get route of that flight
     $route_sql = "SELECT sourceAcode, destAcode FROM flight WHERE flight_id = ?";
     $route_stmt = $conn->prepare($route_sql);
     $route_stmt->bind_param("s", $orig_flight_id);
@@ -63,7 +84,6 @@ if ($booking && $step === 'select_flight' && isset($_GET['date_value']) && $_GET
     $route_stmt->close();
 
     if ($sourceAcode && $destAcode) {
-        // Now find all flights with same route that have instances on that date
         $flight_sql = "
             SELECT fi.f_instance_id, fi.flight_id, fi.departure_time, fi.arrival_time, fi.available_seats,
                    f.flight_name, f.sourceAcode, f.destAcode, f.duration
@@ -88,7 +108,6 @@ if ($booking && $step === 'select_flight' && isset($_GET['date_value']) && $_GET
         $flight_stmt->close();
     }
 }
-
 ?>
 
 <!DOCTYPE html>
@@ -149,7 +168,6 @@ if ($booking && $step === 'select_flight' && isset($_GET['date_value']) && $_GET
             max-width: 500px;
             background: var(--white-color-light);
             padding: 30px;
-            background: var(--white-color-light);
             margin: 50px auto;
             border-radius: 10px;
             box-shadow: 0 0 10px rgba(16, 91, 141, 0.4);
@@ -251,97 +269,132 @@ if ($booking && $step === 'select_flight' && isset($_GET['date_value']) && $_GET
             align-items: center;
             gap: 10px;
         }
+
+        .segment-options {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .segment-options label {
+            margin-top: 0;
+            font-weight: normal;
+            color: var(--gray-colour);
+        }
     </style>
 </head>
 
 <body>
 
-    <video autoplay muted loop class="video-bg">
-        <source src="From KlickPin CF [Video] timelapse of white clouds and blue sky di 2025 _ Desainsetyawandeddy050 (online-video-cutter.com).mp4" type="video/mp4">
-    </video>
-    <div class="overlay"></div>
+<video autoplay muted loop class="video-bg">
+    <source src="From KlickPin CF [Video] timelapse of white clouds and blue sky di 2025 _ Desainsetyawandeddy050 (online-video-cutter.com).mp4" type="video/mp4">
+</video>
+<div class="overlay"></div>
 
-    <?php if ($booking): ?>
+<?php if ($booking): ?>
 
-        <div class="manage-container">
+    <div class="manage-container">
+        <h2>Update Your Booking</h2>
 
-            <h2>Update Your Booking</h2>
+        <?php if ($step === 'segment'): ?>
+            <!-- STEP 0: Choose which part of trip to edit -->
+            <form action="updatebooking.php" method="get">
+                <input type="hidden" name="id" value="<?= htmlspecialchars($booking['booking_id']) ?>">
+                <input type="hidden" name="step" value="date">
 
-            <?php if ($step === 'date'): ?>
-                <!-- STEP 1: Choose new date + (optionally) class -->
-                <form action="updatebooking.php" method="get">
-                    <input type="hidden" name="id" value="<?= htmlspecialchars($booking['booking_id']) ?>">
-                    <input type="hidden" name="step" value="select_flight">
+                <label>What do you want to edit?</label>
+                <div class="segment-options">
+                    <input type="radio" id="seg_depart" name="segment" value="depart" checked>
+                    <label for="seg_depart">Departure Flight (Going)</label>
+                </div>
+                <div class="segment-options">
+                    <input type="radio" id="seg_return" name="segment" value="return">
+                    <label for="seg_return">Return Flight</label>
+                </div>
 
-                    <label>Current Date</label>
-                    <input type="text" value="<?= htmlspecialchars($booking['date']) ?>" disabled>
+                <input type="submit" value="Continue">
+            </form>
 
-                    <label>Choose New Travel Date</label>
-                    <input type="date" name="date_value" required>
+        <?php elseif ($step === 'date'): ?>
+            <!-- STEP 1: Choose new date + class for selected segment -->
+            <form action="updatebooking.php" method="get">
+                <input type="hidden" name="id" value="<?= htmlspecialchars($booking['booking_id']) ?>">
+                <input type="hidden" name="step" value="select_flight">
+                <input type="hidden" name="segment" value="<?= htmlspecialchars($segment) ?>">
 
-                    <label>Change Class (optional)</label>
-                    <select name="class_value">
-                        <option value="">-- Keep Same Class (<?= htmlspecialchars($booking['class_id']) ?>) --</option>
-                        <?php foreach ($class_options as $class): ?>
-                            <option value="<?= htmlspecialchars($class['class_id']) ?>"
-                                <?= ($booking['class_id'] == $class['class_id']) ? 'selected' : '' ?>>
-                                <?= htmlspecialchars($class['class_name']) ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
+                <label>Editing</label>
+                <input type="text" value="<?= ($segment === 'return') ? 'Return Flight' : 'Departure Flight' ?>" disabled>
 
-                    <input type="submit" value="Find Flights on This Date">
-                </form>
+                <label>Current Date</label>
+                <input type="text" value="<?= htmlspecialchars($current_date) ?>" disabled>
 
-            <?php elseif ($step === 'select_flight'): ?>
+                <label>Choose New Travel Date</label>
+                <input type="date" name="date_value" required>
 
-                <h3 style="color: var(--second-blue);">Flights available on <?= htmlspecialchars($selected_date) ?></h3>
+                <label>Change Class (optional)</label>
+                <select name="class_value">
+                    <option value="">-- Keep Same Class --</option>
+                    <?php foreach ($class_options as $class): ?>
+                        <option value="<?= htmlspecialchars($class['class_id']) ?>"
+                            <?= ($current_class_id == $class['class_id']) ? 'selected' : '' ?>>
+                            <?= htmlspecialchars($class['class_name']) ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
 
-                <?php if (empty($available_flights)): ?>
-                    <p>No flights available on this date for your route with enough seats.</p>
-                    <a href="updatebooking.php?id=<?= urlencode($booking['booking_id']) ?>">
-                        <button type="button">Choose Another Date</button>
-                    </a>
-                <?php else: ?>
-                    <!-- STEP 2: Choose specific flight instance and confirm -->
-                    <form action="confirm_update.php" method="post">
-                        <input type="hidden" name="booking_id" value="<?= htmlspecialchars($booking['booking_id']) ?>">
-                        <input type="hidden" name="new_date" value="<?= htmlspecialchars($selected_date) ?>">
-                        <input type="hidden" name="class_value" value="<?= htmlspecialchars($_GET['class_value'] ?? '') ?>">
+                <input type="submit" value="Find Flights on This Date">
+            </form>
 
-                        <?php foreach ($available_flights as $f): ?>
-                            <div class="flight-card">
-                                <div class="radio-wrap">
-                                    <input type="radio" name="f_instance_id" value="<?= htmlspecialchars($f['f_instance_id']) ?>" required>
-                                    <div>
-                                        <div class="flight-title">
-                                            <?= htmlspecialchars($f['flight_name']) ?> (<?= htmlspecialchars($f['flight_id']) ?>)
-                                        </div>
-                                        <div class="flight-sub">
-                                            <?= htmlspecialchars($f['sourceAcode']) ?> → <?= htmlspecialchars($f['destAcode']) ?><br>
-                                            Depart: <?= htmlspecialchars($f['departure_time']) ?> &nbsp;|&nbsp;
-                                            Arrive: <?= htmlspecialchars($f['arrival_time']) ?><br>
-                                            Duration: <?= htmlspecialchars($f['duration']) ?><br>
-                                            Available Seats: <?= htmlspecialchars($f['available_seats']) ?>
-                                        </div>
+        <?php elseif ($step === 'select_flight'): ?>
+
+            <h3 style="color: var(--second-blue);">
+                Flights available on <?= htmlspecialchars($selected_date) ?>
+                (<?= ($segment === 'return') ? 'Return' : 'Departure' ?>)
+            </h3>
+
+            <?php if (empty($available_flights)): ?>
+                <p>No flights available on this date for your route with enough seats.</p>
+                <a href="updatebooking.php?id=<?= urlencode($booking['booking_id']) ?>&step=date&segment=<?= urlencode($segment) ?>">
+                    <button type="button">Choose Another Date</button>
+                </a>
+            <?php else: ?>
+                <!-- STEP 2: Choose specific flight instance and confirm -->
+                <form action="confirm_update.php" method="post">
+                    <input type="hidden" name="booking_id" value="<?= htmlspecialchars($booking['booking_id']) ?>">
+                    <input type="hidden" name="new_date" value="<?= htmlspecialchars($selected_date) ?>">
+                    <input type="hidden" name="class_value" value="<?= htmlspecialchars($_GET['class_value'] ?? '') ?>">
+                    <input type="hidden" name="segment" value="<?= htmlspecialchars($segment) ?>">
+
+                    <?php foreach ($available_flights as $f): ?>
+                        <div class="flight-card">
+                            <div class="radio-wrap">
+                                <input type="radio" name="f_instance_id" value="<?= htmlspecialchars($f['f_instance_id']) ?>" required>
+                                <div>
+                                    <div class="flight-title">
+                                        <?= htmlspecialchars($f['flight_name']) ?> (<?= htmlspecialchars($f['flight_id']) ?>)
+                                    </div>
+                                    <div class="flight-sub">
+                                        <?= htmlspecialchars($f['sourceAcode']) ?> → <?= htmlspecialchars($f['destAcode']) ?><br>
+                                        Depart: <?= htmlspecialchars($f['departure_time']) ?> &nbsp;|&nbsp;
+                                        Arrive: <?= htmlspecialchars($f['arrival_time']) ?><br>
+                                        Duration: <?= htmlspecialchars($f['duration']) ?><br>
+                                        Available Seats: <?= htmlspecialchars($f['available_seats']) ?>
                                     </div>
                                 </div>
                             </div>
-                        <?php endforeach; ?>
+                        </div>
+                    <?php endforeach; ?>
 
-                        <input type="submit" value="Confirm Change">
-                    </form>
-                <?php endif; ?>
-
+                    <input type="submit" value="Confirm Change">
+                </form>
             <?php endif; ?>
 
-        </div>
+        <?php endif; ?>
 
+    </div>
 
-    <?php else: ?>
-        <p class="no-result"><?= $error ?></p>
-    <?php endif; ?>
+<?php else: ?>
+    <p class="no-result"><?= $error ?></p>
+<?php endif; ?>
 
 </body>
-
 </html>

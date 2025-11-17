@@ -1,38 +1,46 @@
 <?php
 $servername = "localhost";
-$username = "root";
-$password = "";
-$dbname = "airport";
+$username   = "root";
+$password   = "";
+$dbname     = "airport";
 
 $conn = new mysqli($servername, $username, $password, $dbname);
 if ($conn->connect_error) die("Connection failed: " . $conn->connect_error);
 
-$message = "";
-$booking = null;
-$passenger_id = null;
+$message      = "";
+$booking_rows = [];
+$passenger    = null;
 
 // Step 1: Load booking using booking_id from viewbooking.php
 if (isset($_GET['booking_id'])) {
     $booking_id = $_GET['booking_id'];
 
-    $sql = "SELECT b.booking_id, b.flight_id, b.date,
-               p.passenger_ID,
-               CONCAT(p.fname, ' ', p.lname) AS name,
-               p.email
+    // Get ONE passenger (any) + all flight segments for this booking
+    $sql = "
+        SELECT 
+            b.booking_id,
+            b.flight_id,
+            b.date,
+            p.passenger_ID,
+            CONCAT(p.fname, ' ', p.lname) AS name,
+            p.email
         FROM booking b
         LEFT JOIN makes m ON b.booking_id = m.booking_id
         LEFT JOIN passenger p ON m.passenger_ID = p.passenger_ID
         WHERE b.booking_id = ?
-        LIMIT 1";
+    ";
 
     $stmt = $conn->prepare($sql);
-    $stmt->bind_param("s", $booking_id); // VARCHAR
+    $stmt->bind_param("s", $booking_id);
     $stmt->execute();
     $result = $stmt->get_result();
 
     if ($result->num_rows > 0) {
-        $booking = $result->fetch_assoc();
-        $passenger_id = $booking['passenger_ID'] ?? null;
+        while ($row = $result->fetch_assoc()) {
+            $booking_rows[] = $row;
+        }
+        // Use first row just to show passenger info
+        $passenger = $booking_rows[0];
     } else {
         $message = "Booking not found.";
     }
@@ -42,32 +50,26 @@ if (isset($_GET['booking_id'])) {
 // Step 2: If user confirms cancellation
 if (isset($_POST['confirm_cancel']) && isset($_POST['booking_id'])) {
     $booking_id = $_POST['booking_id'];
-    $passenger_id = $_POST['passenger_id'] ?? null;
 
-    // Delete from makes
+    // Delete from makes (all passengers linked to this booking_id)
     $stmt1 = $conn->prepare("DELETE FROM makes WHERE booking_id = ?");
     $stmt1->bind_param("s", $booking_id);
     $stmt1->execute();
     $stmt1->close();
 
-    // Delete from booking
+    // Delete from booking (one-way: 1 row, two-way: 2 rows, etc.)
     $stmt2 = $conn->prepare("DELETE FROM booking WHERE booking_id = ?");
     $stmt2->bind_param("s", $booking_id);
     $stmt2->execute();
     $stmt2->close();
 
-    // Delete passenger if we know it
-    if ($passenger_id) {
-        $stmt3 = $conn->prepare("DELETE FROM passenger WHERE passenger_ID = ?");
-        $stmt3->bind_param("s", $passenger_id);
-        $stmt3->execute();
-        $stmt3->close();
-        $message = "Your booking has been cancelled successfully!";
-    } else {
-        $message = "Your booking has been cancelled. (No passenger record linked or already removed.)";
-    }
+    // We DO NOT delete passenger records here because:
+    // - same passenger may have other bookings
+    // - multiple passengers are linked to this booking
 
-    $booking = null;
+    $message      = "Your booking (all trip segments) has been cancelled successfully!";
+    $booking_rows = [];
+    $passenger    = null;
 }
 
 $conn->close();
@@ -196,6 +198,12 @@ $conn->close();
             font-size: 18px;
             color: var(--gray-colour);
         }
+
+        .segment-title {
+            font-weight: bold;
+            margin-top: 10px;
+            color: var(--second-blue);
+        }
     </style>
 </head>
 
@@ -211,37 +219,45 @@ $conn->close();
 
         <?php if ($message): ?>
             <div class="but">
-                <p class="message"><?= $message ?></p>
+                <p class="message"><?= htmlspecialchars($message) ?></p>
                 <a href="managebooking.php" class="btn btn-back">Back to Manage Booking</a>
             </div>
-        <?php elseif (!$booking): ?>
+
+        <?php elseif (!$booking_rows): ?>
             <div class="but">
                 <p class="message">Booking not found.</p>
                 <a href="managebooking.php" class="btn btn-back">Back to Manage Booking</a>
             </div>
+
         <?php else: ?>
             <h2 style=" color: var(--second-blue);">Are you sure you want to cancel this booking?</h2>
-            <div class=" warning-box">
-                ⚠ You are about to cancel your booking. This action cannot be undone.
+            <div class="warning-box">
+                ⚠ You are about to cancel your booking (all trip segments). This action cannot be undone.
             </div>
 
             <div class="detail-box">
-                <p><strong>Booking ID:</strong> <?= htmlspecialchars($booking['booking_id']) ?></p>
-                <p><strong>Passenger Name:</strong> <?= htmlspecialchars($booking['name'] ?? 'N/A') ?></p>
-                <p><strong>Email:</strong> <?= htmlspecialchars($booking['email'] ?? 'N/A') ?></p>
-                <p><strong>Flight ID:</strong> <?= htmlspecialchars($booking['flight_id']) ?></p>
-                <p><strong>Date:</strong> <?= htmlspecialchars($booking['date']) ?></p>
+                <p><strong>Booking ID:</strong> <?= htmlspecialchars($booking_rows[0]['booking_id']) ?></p>
+                <p><strong>Passenger Name:</strong> <?= htmlspecialchars($passenger['name'] ?? 'N/A') ?></p>
+                <p><strong>Email:</strong> <?= htmlspecialchars($passenger['email'] ?? 'N/A') ?></p>
+
+                <?php
+                $segNo = 1;
+                foreach ($booking_rows as $row) {
+                    echo '<p class="segment-title">Segment ' . $segNo++ . ':</p>';
+                    echo '<p><strong>Flight ID:</strong> ' . htmlspecialchars($row['flight_id']) . '</p>';
+                    echo '<p><strong>Date:</strong> ' . htmlspecialchars($row['date']) . '</p>';
+                }
+                ?>
             </div>
 
             <form method="post">
-                <input type="hidden" name="booking_id" value="<?= htmlspecialchars($booking['booking_id']) ?>">
-                <input type="hidden" name="passenger_id" value="<?= htmlspecialchars($booking['passenger_ID'] ?? '') ?>">
+                <input type="hidden" name="booking_id" value="<?= htmlspecialchars($booking_rows[0]['booking_id']) ?>">
 
                 <button type="submit" name="confirm_cancel" class="btn btn-cancel">
                     Yes, Cancel My Booking
                 </button>
 
-                <a href="viewbooking.php?id=<?= urlencode($booking['booking_id']) ?>&email=<?= urlencode($booking['email'] ?? '') ?>" class="btn btn-back">
+                <a href="managebooking.php" class="btn btn-back">
                     No, Go Back
                 </a>
             </form>
